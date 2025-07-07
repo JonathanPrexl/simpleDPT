@@ -18,4 +18,4 @@ All steps are wrapped in the forward pass of the `ViTDPT` module which can be fo
 Example configurations for a 16x16 and 8x8 patch size can be found under `configs/config_16x16.yaml` and `configs/config_8x8.yaml`.
 
 ## License
-This project is licensed under the MIT License. See the [LICENSE](../LICENSE) file for details.
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
