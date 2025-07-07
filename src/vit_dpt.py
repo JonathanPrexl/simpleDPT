@@ -6,6 +6,23 @@ from modules.vit_tokens_to_spatial_features import ViTTokenToSpatialFeature
 from modules.feature_harmonizer import FeatureHarmonizer
 
 
+class TokenReshape(nn.Module):
+    """Reshape ViT tokens to spatial features."""
+
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, x):
+        # flatten the spatial dimensions
+        # order of the spatial information (lets asume 8x8 grid as in 128 image size
+        # and 16 patch size) is here:
+        # (x0 y0) (x1 y0) (x2 y0) ... (x7 y7)
+        # this gets importent when transforming the tokens to spatial features
+        # in the ViTTokenToSpatialFeature module
+        x = x.flatten(2).transpose(1, 2)
+        return x
+    
+
 class ViTBackbone(nn.Module):
 
     def __init__(self,
@@ -35,6 +52,8 @@ class ViTBackbone(nn.Module):
             torch.randn(1, (image_size // patch_size)**2, vit_embedding_dim)
         )
 
+        self.reshape = TokenReshape()
+
         # four stages of transformer blocks
         # so no hook implementaion is needed
         transformer_layer = nn.TransformerEncoderLayer(d_model=vit_embedding_dim, nhead=heads, batch_first=True)
@@ -48,22 +67,8 @@ class ViTBackbone(nn.Module):
         # patch embedding
         x = self.patch_embedding(x)
 
-        # ------------------------------
-        # for debbugging purposes overwrite x 
-        # ------------------------------
-
-        # x = torch.zeros_like(x)
-        # for xi in range(8):
-        #     for yi in range(8):
-        #         x[:, :, yi, xi] = yi*10 + xi
-
-        # flatten the spatial dimensions
-        # order of the spatial information (lets asume 8x8 grid as in 128 image size
-        # and 16 patch size) is here:
-        # (x0 y0) (x1 y0) (x2 y0) ... (x7 y7)
-        # this gets importent when transforming the tokens to spatial features
-        # in the ViTTokenToSpatialFeature module
-        x = x.flatten(2).transpose(1, 2)
+        # reshape to tokens
+        x = self.reshape(x)
 
         # add positional embedding
         x = x + self.positional_embedding
