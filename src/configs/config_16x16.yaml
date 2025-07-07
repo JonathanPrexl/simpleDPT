@@ -1,0 +1,44 @@
+defaults:  
+  - _self_  
+  - override hydra/hydra_logging: disabled  
+  - override hydra/job_logging: disabled  
+  
+hydra:  
+  output_subdir: null  
+  run:  
+    dir: .
+
+
+model:
+  _target_: "vit_dpt.ViTDPT"
+  vit_backbone:
+    _target_: "vit_dpt.ViTBackbone"
+    image_size: 128 
+    number_of_channels: 3
+    patch_size: 16
+    vit_embedding_dim: 768
+    num_layers_list: [3,3,3,3]
+    heads: 12
+  token_extractor:
+    _target_: "modules.vit_tokens_to_spatial_features.ViTTokenToSpatialFeature"
+    image_size: ${model.vit_backbone.image_size}
+    patch_size: ${model.vit_backbone.patch_size}
+    vit_embedding_dim: ${model.vit_backbone.vit_embedding_dim}
+    num_cnn_features_after_extraction: [96, 192, 384, 768]
+  feature_harmonizer:
+    _target_: "modules.feature_harmonizer.FeatureHarmonizer"
+    num_cnn_features_after_extraction: ${model.token_extractor.num_cnn_features_after_extraction}
+    num_cnn_features: 256
+    groups: 1
+  feature_merger:
+    _target_: "modules.merge_features.FeatureMerging"
+    num_cnn_features: ${model.feature_harmonizer.num_cnn_features}
+    activation: "relu"
+    deconv: False
+    bn: False
+    align_corners: True
+  prediction_head:
+    _target_: "vit_dpt.DPTHead"
+    num_cnn_features: ${model.feature_merger.num_cnn_features} 
+    output_channels: 1 # Number of output channels, e.g., 12 Sentinel-2 bands
+    upsample: True
