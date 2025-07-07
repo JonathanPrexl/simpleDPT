@@ -12,6 +12,24 @@ class Transpose(nn.Module):
         x = x.transpose(self.dim0, self.dim1)
         return x
     
+class TokenReshapeReverse(nn.Module):
+    """
+    This module reshapes the input tokens from a 2D grid back to a 1D sequence.
+    It is used to reverse the operation of unflattening the tokens into a 2D grid.
+    """
+
+    def __init__(self, image_size: int, patch_size: int):
+        super().__init__()
+        self.transpose = Transpose(1, 2)
+        self.unflatten = nn.Unflatten(2, torch.Size([image_size // patch_size, image_size // patch_size]))
+
+    def forward(self, x):
+        x = self.transpose(x)  # Transpose the dimensions
+        x = self.unflatten(x)  # Unflatten the tokens into a 2D
+        return x
+    
+
+
 class ViTTokenToSpatialFeature(nn.Module):
 
     """
@@ -52,9 +70,10 @@ class ViTTokenToSpatialFeature(nn.Module):
                  ):
         super().__init__()
 
+        reshape = TokenReshapeReverse(image_size=image_size, patch_size=patch_size)
+
         self.process_layer_1 = nn.Sequential(
-            Transpose(1, 2),
-            nn.Unflatten(2, torch.Size([image_size // patch_size, image_size // patch_size])),
+            reshape,
             nn.Conv2d(
                 in_channels=vit_embedding_dim,
                 out_channels=num_cnn_features_after_extraction[0],
@@ -75,8 +94,7 @@ class ViTTokenToSpatialFeature(nn.Module):
         )
 
         self.process_layer_2 = nn.Sequential(
-            Transpose(1, 2),
-            nn.Unflatten(2, torch.Size([image_size // patch_size, image_size // patch_size])),
+            reshape,
             nn.Conv2d(
                 in_channels=vit_embedding_dim,
                 out_channels=num_cnn_features_after_extraction[1],
@@ -97,8 +115,7 @@ class ViTTokenToSpatialFeature(nn.Module):
         )
 
         self.process_layer_3 = nn.Sequential(
-            Transpose(1, 2),
-            nn.Unflatten(2, torch.Size([image_size // patch_size, image_size // patch_size])),
+            reshape,
             nn.Conv2d(
                 in_channels=vit_embedding_dim,
                 out_channels=num_cnn_features_after_extraction[2],
@@ -109,8 +126,7 @@ class ViTTokenToSpatialFeature(nn.Module):
         )
 
         self.process_layer_4 = nn.Sequential(
-            Transpose(1, 2),
-            nn.Unflatten(2, torch.Size([image_size // patch_size, image_size // patch_size])),
+            reshape,
             nn.Conv2d(
                 in_channels=vit_embedding_dim,
                 out_channels=num_cnn_features_after_extraction[3],
